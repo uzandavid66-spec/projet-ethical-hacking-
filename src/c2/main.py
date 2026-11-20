@@ -11,7 +11,7 @@ def gerer_client(conn, addr):
     
     while True:
         try:
-            # On demande une commande au "hacker" (toi)
+           
             cmd = input(f"{addr} > ")
             
             if cmd == "exit":
@@ -39,7 +39,7 @@ def gerer_client(conn, addr):
 
 def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Evite l'erreur "Address already in use"
+    # Evite l'erreur 
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     
     try:
@@ -49,6 +49,31 @@ def main():
     except Exception as e:
         print(f"[-] Impossible de demarrer : {e}")
         sys.exit(1)
+
+    try:
+        # Boucle principale
+        while True:
+            conn, addr = server.accept()
+            
+            # Fork pour gérer plusieurs clients en parallèle
+            pid = os.fork()
+            
+            if pid == 0:
+                # Processus enfant : gère le client
+                server.close()
+                gerer_client(conn, addr)
+            else:
+                # Processus parent : continue d'écouter
+                conn.close()
+                print(f"[*] Processus fils cree (PID: {pid})")
+                
+    except KeyboardInterrupt:
+        # Permet de fermer le serveur proprement avec Ctrl+C
+        print("\n[-] Arret du serveur...")
+        server.close()
+        sys.exit(0)    
+
+
 
     # Boucle principale
     while True:
