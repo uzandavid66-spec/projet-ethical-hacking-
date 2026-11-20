@@ -54,7 +54,7 @@ def main():
     while True:
         conn, addr = server.accept()
         
-        # --- LE FORK DEMANDE PAR LE PROF ---
+        # Création d'un processus enfant pour isoler la gestion du client
         pid = os.fork()
         
         if pid == 0:
