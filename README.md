@@ -1,51 +1,80 @@
-# Projet Ethical Hacking
+# Projet Ethical Hacking — Démo TCP locale
 
-## Objectif
-
-Ce projet de groupe présente une démonstration de communication client-serveur en Python avec des sockets TCP. Les deux programmes s’exécutent sur la même machine, à l’adresse `127.0.0.1`. Le client envoie `Bonjour` et le serveur répond `OK`.
+Le client envoie `Bonjour\n` et le serveur répond `OK\n` sur `127.0.0.1:5000`.
 
 ## Répartition du travail
 
 | Membre | Contribution | Branche |
 | --- | --- | --- |
-| Ayman — membre 1 | Développer `serveur.py` et `client.py`, puis vérifier l’échange entre les deux scripts. | `ayman-membre-1` |
-| Esra — membre 2 | Contribution à préciser avec le groupe. | À définir |
-| David — membre 3 | Écrire les tests du client et documenter le lancement de la démonstration. | `david-membre-3` |
+| Ayman, membre 1 | Serveur socket du projet dans `src/c2/main.py`. | `ayman-membre-1` |
+| Esra, membre 2 | Contribution à confirmer avec Esra. | À confirmer |
+| David, membre 3 | Tests du client, client et serveur de vérification locale, README. | `david-membre-3` |
 
-## Lancer la démonstration
+## Lancer sous Windows
 
-Une fois `serveur.py` et `client.py` réunis dans le dossier du projet, ouvrir deux terminaux dans VS Code.
+Ouvrir deux terminaux PowerShell dans VS Code à la racine du dépôt.
+Dans le premier terminal, lancer le serveur de test.
 
-Dans le premier terminal, lancer le serveur. Sous Windows, avec Python 3.14 installé :
-
-```bat
-py -3.14 serveur.py
+```powershell
+$py314 = "$env:USERPROFILE\AppData\Local\Programs\Python\Python314\python.exe"
+& $py314 src/c2/serveur_demo.py
 ```
 
-Dans le deuxième terminal, lancer le client :
+Attendre `Serveur de test sur 127.0.0.1:5000`, puis lancer le client et les tests dans le second terminal.
 
-```bat
-py -3.14 client.py
+```powershell
+$py314 = "$env:USERPROFILE\AppData\Local\Programs\Python\Python314\python.exe"
+& $py314 src/c2/client_demo.py
+& $py314 -m unittest -v test_client
 ```
 
-Le résultat attendu côté client est `Réponse du serveur : OK`. Relancer le serveur avant chaque nouvel essai.
+Le chemin ci-dessus est celui utilisé sur le poste de David avec Python 3.14.2.
+Si le lanceur Windows détecte Python 3.14, `py -3.14` peut remplacer `& $py314`.
 
-## Lancer les tests du client
+Le serveur s'arrête après une connexion par défaut. Relancer le client seul pour
+vérifier que la connexion est refusée. Pour vérifier trois connexions successives,
+lancer `& $py314 src/c2/serveur_demo.py --clients 3` et lancer trois fois le client.
 
-Depuis le dossier qui contient `client.py` et `test_client.py` :
+| Vérification sous Windows | Résultat |
+| --- | --- |
+| Envoi de Bonjour et lecture de OK avec socket simulé | Réussi |
+| Refus de connexion simulé | Réussi |
+| Échange TCP sur localhost | OK, code de sortie 0 |
+| Client lancé après arrêt du serveur | Connexion impossible, code de sortie 1 (WinError 10061) |
+| Trois connexions locales successives | Trois réponses OK, puis arrêt du serveur |
 
-```bat
-py -3.14 -m unittest -v test_client
+## Point d'intégration avec Ayman
+
+Au commit `0bc0e52957cf9b32b8518673399704359d34835a`, `src/c2/main.py`
+écoute sur `0.0.0.0:4444`, envoie du texte saisi au clavier et crée un
+processus par connexion avec `os.fork()`, indisponible sous Windows.
+La branche ne contient pas de client. Le serveur d'Ayman a été lu.
+Les essais ci-dessus utilisent les scripts de David sur le port 5000.
+
+Pour rejouer les tests avec la contribution d'Ayman, il faut une variante qui
+écoute sur localhost, lit `Bonjour\n` et répond `OK\n`, avec le même port
+côté client et une gestion des connexions compatible Windows. Confirmer avec
+le professeur si la partie `fork` doit être montrée séparément sous Linux.
+
+## Arborescence de la démo
+
+```text
+README.md
+test_client.py
+bin/.gitkeep
+src/c2/client_demo.py
+src/c2/serveur_demo.py
+src/lin/.gitkeep
+src/win/.gitkeep
 ```
 
-Les deux tests simulent une connexion. Le premier vérifie que le client envoie `Bonjour` et lit la réponse `OK`. Le second vérifie que la fonction du client signale un refus de connexion.
+## Bonus demandés pour le groupe de trois
 
-Les deux tests passent avec le client temporaire utilisé pendant le développement. Ils seront relancés avec le client d’Ayman, puis l’échange complet sera vérifié avec les deux scripts.
+| Bonus | État | À valider avec le professeur |
+| --- | --- | --- |
+| Communication chiffrée | À faire. Le TCP de la démo est en clair. | Échange local chiffré avec messages fixes. |
+| Chiffrement d'un dossier et export de la clé | À faire. | Fichiers fictifs, export de la clé et restauration vérifiée. |
+| Inventaire automatisé des services | À faire. | Acceptation de données simulées pour l'inventaire. |
+| Gestion de plusieurs clients | Trois connexions successives vérifiées. | Vérifier si la simultanéité ou le fork sous Linux sont exigés. |
 
-## Organisation sur GitHub
-
-Chaque membre fait ses commits et ses pushs sur sa propre branche. Une pull request permet à un autre membre de relire les changements et de vérifier leur fonctionnement avant la fusion dans `main`.
-
-## Bonus
-
-Les bonus seront détaillés à partir de l’énoncé du TP.
+Après validation des branches, un seul membre produit le ZIP final et le dépose sur la plateforme.

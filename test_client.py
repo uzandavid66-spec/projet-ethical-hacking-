@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from client import envoyer_bonjour
+from src.c2.client_demo import envoyer_bonjour
 
 
 class TestClient(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestClient(unittest.TestCase):
             b"OK\n"
         )
 
-        with patch("client.socket.create_connection") as ouvrir_connexion:
+        with patch("src.c2.client_demo.socket.create_connection") as ouvrir_connexion:
             ouvrir_connexion.return_value.__enter__.return_value = connexion
             reponse = envoyer_bonjour(port=5000)
 
@@ -20,7 +20,7 @@ class TestClient(unittest.TestCase):
         self.assertEqual(reponse, "OK")
 
     def test_connexion_refusee(self):
-        with patch("client.socket.create_connection", side_effect=ConnectionRefusedError):
+        with patch("src.c2.client_demo.socket.create_connection", side_effect=ConnectionRefusedError):
             with self.assertRaises(ConnectionRefusedError):
                 envoyer_bonjour(port=5000)
 
