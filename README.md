@@ -1,80 +1,78 @@
-# Projet Ethical Hacking — Démo TCP locale
+# Projet Ethical Hacking — Démonstration TCP locale
 
-Le client envoie `Bonjour\n` et le serveur répond `OK\n` sur `127.0.0.1:5000`.
+La démonstration de David montre un échange TCP entre deux programmes Python sur la même machine. Le client envoie `Bonjour` et le serveur répond `OK` sur `127.0.0.1:5000`.
 
-## Répartition du travail
+## Équipe
 
 | Membre | Contribution | Branche |
 | --- | --- | --- |
-| Ayman, membre 1 | Serveur socket du projet dans `src/c2/main.py`. | `ayman-membre-1` |
-| Esra, membre 2 | Contribution à confirmer avec Esra. | À confirmer |
-| David, membre 3 | Tests du client, client et serveur de vérification locale, README. | `david-membre-3` |
+| Ayman — membre 1 | Serveur socket et client de simulation testés pour la connexion sur Kali. | `ayman-membre-1` |
+| Esra — membre 2 | Contribution à confirmer avec le groupe. | À confirmer |
+| David — membre 3 | Démonstration TCP locale, tests du client et documentation. | `david-membre-3` |
 
-## Lancer sous Windows
+## Lancer la démonstration sous Windows
 
-Ouvrir deux terminaux PowerShell dans VS Code à la racine du dépôt.
-Dans le premier terminal, lancer le serveur de test.
+Ouvrir deux terminaux dans VS Code à la racine du dépôt. Dans le premier, lancer le serveur de démonstration.
 
-```powershell
-$py314 = "$env:USERPROFILE\AppData\Local\Programs\Python\Python314\python.exe"
-& $py314 src/c2/serveur_demo.py
+```bat
+py -3.14 src/c2/serveur_demo.py
 ```
 
-Attendre `Serveur de test sur 127.0.0.1:5000`, puis lancer le client et les tests dans le second terminal.
+Quand le serveur affiche `Serveur de test sur 127.0.0.1:5000`, lancer le client dans le deuxième terminal.
 
-```powershell
-$py314 = "$env:USERPROFILE\AppData\Local\Programs\Python\Python314\python.exe"
-& $py314 src/c2/client_demo.py
-& $py314 -m unittest -v test_client
+```bat
+py -3.14 src/c2/client_demo.py
 ```
 
-Le chemin ci-dessus est celui utilisé sur le poste de David avec Python 3.14.2.
-Si le lanceur Windows détecte Python 3.14, `py -3.14` peut remplacer `& $py314`.
+Le client doit recevoir `OK`. Par défaut, le serveur s’arrête après une connexion. Pour vérifier trois connexions successives, lancer le serveur avec `--clients 3`, puis lancer le client trois fois.
 
-Le serveur s'arrête après une connexion par défaut. Relancer le client seul pour
-vérifier que la connexion est refusée. Pour vérifier trois connexions successives,
-lancer `& $py314 src/c2/serveur_demo.py --clients 3` et lancer trois fois le client.
+## Lancer les tests unitaires
 
-| Vérification sous Windows | Résultat |
-| --- | --- |
-| Envoi de Bonjour et lecture de OK avec socket simulé | Réussi |
-| Refus de connexion simulé | Réussi |
-| Échange TCP sur localhost | OK, code de sortie 0 |
-| Client lancé après arrêt du serveur | Connexion impossible, code de sortie 1 (WinError 10061) |
-| Trois connexions locales successives | Trois réponses OK, puis arrêt du serveur |
+Depuis la racine du dépôt :
 
-## Point d'intégration avec Ayman
+```bat
+py -3.14 -m unittest -v test_client
+```
 
-Au commit `0bc0e52957cf9b32b8518673399704359d34835a`, `src/c2/main.py`
-écoute sur `0.0.0.0:4444`, envoie du texte saisi au clavier et crée un
-processus par connexion avec `os.fork()`, indisponible sous Windows.
-La branche ne contient pas de client. Le serveur d'Ayman a été lu.
-Les essais ci-dessus utilisent les scripts de David sur le port 5000.
+Les tests simulent la connexion pour vérifier l’envoi de `Bonjour`, la lecture de `OK` et la gestion d’un refus de connexion.
 
-Pour rejouer les tests avec la contribution d'Ayman, il faut une variante qui
-écoute sur localhost, lit `Bonjour\n` et répond `OK\n`, avec le même port
-côté client et une gestion des connexions compatible Windows. Confirmer avec
-le professeur si la partie `fork` doit être montrée séparément sous Linux.
+## Résultats des vérifications
 
-## Arborescence de la démo
+| Environnement | Vérification | Résultat |
+| --- | --- | --- |
+| Windows | Deux tests unitaires du client de David | 2 tests réussis |
+| Windows | Échange TCP local sur le port `5000` | Réponse `OK`, code de sortie `0` |
+| Windows | Client lancé après l’arrêt du serveur | Connexion refusée, code de sortie `1` |
+| Windows | Trois connexions successives | Trois réponses `OK`, puis arrêt du serveur |
+| Kali | Connexion du client de simulation d’Ayman sur `127.0.0.1:4444` | Connexion acceptée et processus fils créé |
+| Kali | Réponse du client reçue par le serveur d’Ayman | À confirmer |
+
+Le test sur Kali concerne `src/c2/main.py` et `tests/test_client.py` de la branche `ayman-membre-1`. Le serveur utilise `os.fork()` sous Linux. Les tests unitaires de David couvrent la démonstration Windows sur le port `5000`.
+
+## Arborescence de la branche de David
 
 ```text
-README.md
-test_client.py
-bin/.gitkeep
-src/c2/client_demo.py
-src/c2/serveur_demo.py
-src/lin/.gitkeep
-src/win/.gitkeep
+.
+├── README.md
+├── test_client.py
+├── bin/
+└── src/
+    ├── c2/
+    │   ├── client_demo.py
+    │   └── serveur_demo.py
+    ├── lin/
+    └── win/
 ```
 
 ## Bonus demandés pour le groupe de trois
 
-| Bonus | État | À valider avec le professeur |
-| --- | --- | --- |
-| Communication chiffrée | À faire. Le TCP de la démo est en clair. | Échange local chiffré avec messages fixes. |
-| Chiffrement d'un dossier et export de la clé | À faire. | Fichiers fictifs, export de la clé et restauration vérifiée. |
-| Inventaire automatisé des services | À faire. | Acceptation de données simulées pour l'inventaire. |
-| Gestion de plusieurs clients | Trois connexions successives vérifiées. | Vérifier si la simultanéité ou le fork sous Linux sont exigés. |
+| Bonus | État |
+| --- | --- |
+| Chiffrement de la communication | À faire. Les messages de la démo TCP circulent en clair. |
+| Chiffrement d’un dossier et export de la clé | À faire. |
+| Inventaire automatisé des services | À faire. L’acceptation d’une simulation reste à confirmer avec le professeur. |
+| Gestion de plusieurs clients | Trois connexions successives vérifiées sous Windows. La gestion simultanée reste à vérifier. |
 
-Après validation des branches, un seul membre produit le ZIP final et le dépose sur la plateforme.
+## Organisation et rendu
+
+Chaque membre pousse ses changements sur sa branche. Les contributions sont relues dans des pull requests avant leur fusion dans `main`. Après validation en groupe, un seul membre dépose le ZIP final sur la plateforme.
