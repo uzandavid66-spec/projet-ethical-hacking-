@@ -31,10 +31,22 @@ def main():
             
             if cmd == "whoami":
                 res = "utilisateur_test\n"
+                client.send(res.encode('utf-8'))
+            elif cmd == "screenshot":
+                # On simule l'envoi d'une image en lisant un fichier local
+                
+                try:
+                    with open("test.png", "rb") as f:
+                        img_data = f.read()
+                    client.send(img_data)
+                    print("[*] Fausse capture envoyee !")
+                except FileNotFoundError:
+                    print("[-] Impossible de trouver test.png")
             else:
                 res = f"Commande '{cmd}' executee (simulation).\n"
-                
-            client.send(res.encode('utf-8'))
+                client.send(res.encode('utf-8'))
+        
+        
         except Exception:
             break
             
