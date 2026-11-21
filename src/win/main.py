@@ -54,7 +54,7 @@ def execute_cmd(cmd):
         capture_output=True, text=True,
         encoding="utf-8", errors="replace", timeout=30
     )
-    output = result.stdout + result.stderr
+    output = proc.stdout + proc.stderr
     if not output.strip():
         output = "(pas de sortie)"
     return output
