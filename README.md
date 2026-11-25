@@ -8,7 +8,7 @@ La démonstration de David utilise deux programmes Python qui communiquent en TC
 | --- | --- | --- |
 | Ayman — membre 1 | Serveur TCP et client de simulation testés sous Kali | `ayman-membre-1` |
 | Esra — membre 2 | Validation sous Windows proposée, à confirmer avec le groupe | À confirmer |
-| David — membre 3 | Démonstration TCP sous Windows, tests unitaires, test d’intégration et documentation | `david-membre-3` |
+| David — membre 3 | Démonstration TCP sous Windows et Kali, diagnostic IPv4 local, lecture de données fictives, tests et documentation | `david-membre-3` |
 
 ## Lancer la démonstration sous Windows
 
@@ -49,7 +49,51 @@ Les deux tests unitaires simulent la socket pour vérifier l’échange `Bonjour
 | Kali | Aller-retour TCP simulé | Le serveur affiche la réponse fictive reçue |
 | Kali | Transfert de données de test | Le serveur signale l’enregistrement des données reçues |
 
-Sous Kali, le fichier `test.png` contenait du texte de test. L’essai couvre le transfert de données. La capture d’écran réelle reste à valider.
+Sous Kali, le fichier `test.png` contenait du texte de test. Ce résultat historique porte sur le transfert de données.
+
+## Vérifications sous Kali
+
+Les commandes ci-dessous ont été exécutées depuis la racine du dépôt sur Kali GNU/Linux 2026.2 avec Python 3.13.12. La branche de départ était `david-membre-3` au commit `1c4c84f` et l’arbre de travail était propre.
+
+```sh
+pwd
+git status
+git branch --show-current
+git rev-parse --short HEAD
+python3 --version
+python3 -m unittest -v test_client test_tcp_integration
+python3 -m unittest -v test_lin
+python3 -m src.lin.diagnostic_ipv4
+python3 -m src.lin.lecture_fictive
+```
+
+Pour l’essai TCP manuel, lancer le serveur dans un terminal et attendre son message d’écoute. Exécuter ensuite la deuxième commande dans un autre terminal. Le serveur s’arrête après la première connexion. Relancer alors la commande client pour vérifier le refus de connexion.
+
+```sh
+python3 src/c2/serveur_demo.py
+python3 -m src.lin.client_local
+python3 -m src.lin.client_local
+```
+
+L’essai a affiché `OK` avec le code de sortie `0`, puis `Connexion refusée` avec le code `1`. Le client accepte `--port` et utilise toujours `127.0.0.1`. Les tests TCP automatisés utilisent des ports libres attribués par le système.
+
+Les trois tests existants et les dix nouveaux tests ont réussi. Les sockets TCP et Netlink ont été bloquées lors des premiers essais dans le bac à sable. Les vérifications réseau ont abouti après exécution hors bac à sable sur la même VM.
+
+Le diagnostic IPv4 utilise la commande locale `ip` et affiche les adresses hors boucle locale à la demande. L’exemple de lecture affiche le contenu de `bonjour.txt` et les chemins relatifs des fichiers sous `src/lin/donnees_fictives/`, y compris dans les sous-dossiers. Il ignore les liens symboliques.
+
+### Exigences Linux du professeur
+
+L’énoncé du professeur est absent du dépôt. Le tableau recense les points Linux documentés et leur état de vérification. La correspondance avec les exigences officielles reste à confirmer.
+
+| Point Linux | État | Résultat |
+| --- | --- | --- |
+| Échange TCP `Bonjour` → `OK` sur la boucle locale | Vérifié sur Kali | Essai en ligne de commande et tests d’intégration sur ports libres réussis |
+| Client lancé sans serveur à l’écoute | Vérifié sur Kali | Refus explicite et code de sortie `1` |
+| Diagnostic IPv4 hors boucle locale | Vérifié sur Kali | Deux interfaces affichées par la commande locale |
+| Lecture et parcours de données fictives | Vérifié sur Kali | Lecture de `bonjour.txt` et affichage d’un fichier dans un sous-dossier |
+| Filtrage des adresses de boucle locale et erreurs injectées | Simulation dans les tests | Sortie de `ip` et erreurs de socket ou de commande simulées |
+| Aller-retour et transfert de données de test d’Ayman | Simulation historique | Résultats conservés dans le tableau des démonstrations |
+| Capture d’écran réelle et échanges hors boucle locale | Hors périmètre | Aucune validation dans cette contribution |
 
 ## Arborescence de la branche de David
 
@@ -57,6 +101,7 @@ Sous Kali, le fichier `test.png` contenait du texte de test. L’essai couvre le
 .
 ├── README.md
 ├── test_client.py
+├── test_lin.py
 ├── test_tcp_integration.py
 ├── bin/
 └── src/
@@ -64,12 +109,19 @@ Sous Kali, le fichier `test.png` contenait du texte de test. L’essai couvre le
     │   ├── client_demo.py
     │   └── serveur_demo.py
     ├── lin/
+    │   ├── client_local.py
+    │   ├── diagnostic_ipv4.py
+    │   ├── lecture_fictive.py
+    │   └── donnees_fictives/
+    │       ├── bonjour.txt
+    │       └── exemples/
+    │           └── note.txt
     └── win/
 ```
 
 ## Bonus du groupe de trois
 
-L’énoncé rend les bonus obligatoires pour le groupe de trois et prévoit de les traiter après validation des fonctionnalités de base.
+Les notes du groupe prévoient de traiter ces bonus après les fonctionnalités de base. Leur caractère obligatoire reste à confirmer à partir de l’énoncé.
 
 | Bonus | État |
 | --- | --- |
