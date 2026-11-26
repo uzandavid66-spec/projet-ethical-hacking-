@@ -75,27 +75,34 @@ def main():
         sys.exit(1)
 
     # 4. Boucle principale avec gestion multi-OS
-    while True:
-        conn, addr = server.accept()
-        
-        # Si on est sous Windows, on utilise threading
-        if os.name == 'nt':
-            thread = threading.Thread(target=gerer_client, args=(conn, addr))
-            thread.daemon = True
-            thread.start()
-            print(f"[*] Thread cree pour le client {addr}")
-        # Si on est sous Linux (Kali), on utilise fork
-        else:
-            pid = os.fork()
-            if pid == 0:
-                # Processus enfant
-                server.close()
-                gerer_client(conn, addr)
-                sys.exit(0)
+    
+    try:  # <--- AJOUT ICI
+        while True:
+            conn, addr = server.accept()
+            
+            # Si on est sous Windows, on utilise threading
+            if os.name == 'nt':
+                thread = threading.Thread(target=gerer_client, args=(conn, addr))
+                thread.daemon = True
+                thread.start()
+                print(f"[*] Thread cree pour le client {addr}")
+            # Si on est sous Linux (Kali), on utilise fork
             else:
-                # Processus parent
-                conn.close()
-                print(f"[*] Processus fils cree (PID: {pid}) pour le client {addr}")
+                pid = os.fork()
+                if pid == 0:
+                    # Processus enfant
+                    server.close()
+                    gerer_client(conn, addr)
+                    sys.exit(0)
+                else:
+                    # Processus parent
+                    conn.close()
+                    print(f"[*] Processus fils cree (PID: {pid}) pour le client {addr}")
+                    
+    except KeyboardInterrupt:  # <--- AJOUT ICI
+        print("\n[-] Arret du serveur...")
+        server.close()
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
