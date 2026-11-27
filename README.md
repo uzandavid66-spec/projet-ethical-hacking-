@@ -51,7 +51,7 @@ Lors de nos tests, après avoir configuré cette tâche `crontab`, nous avons re
 cd src/c2/
 python3 main.py
 
-### 2. Le Serveur (à lancer sur Kali Linux)
+### 2. Le Client Linux (Debian / Kali)
 
 cd src/lin/
 python3 client_linux.py
